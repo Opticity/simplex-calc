@@ -19,6 +19,7 @@ public:
 	Tableau(int m,int n, bool Minimize);
 	void setTable(double (&matrix)[200][200],double solution[200]);
 	void addSlackVar();
+	void Initialize();
 	void findPivot();
 	void swapBasic();
 	void rowOperation();
