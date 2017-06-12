@@ -115,6 +115,25 @@ void Tableau::addSlackVar()
 	m_Column += m_Row;
 }
 
+void Tableau::Initialize()
+{
+	printStandardForm();
+	findPivot();
+	printTable("at initialization");
+	if(isUnbounded == true)
+	{
+		m_Output << endl << "Unbounded solution! This problem cannot be solved." << endl;
+		m_Output << "This occurs when the intercept ratio column is all negative." << endl;
+		m_Output << "There may be a missing constraint. Please reenter your problem." << endl;	   	   
+	}
+	else
+	{
+		printVar();
+    	Optimize();
+		if(isUnbounded == false) showResult();
+	}
+}
+
 void Tableau::findPivot()
 {
 	// Steps:
@@ -127,6 +146,7 @@ void Tableau::findPivot()
 	int i, j;
 	int colIndex = 0;
 	int rowIndex = 0;
+	int counter = 0;
 	double temp;
 	
 	if(equal(m_Matrix[0][0],0.0)==0.0) // has to be done in case of negative 0 (yes, it happens)
@@ -144,6 +164,9 @@ void Tableau::findPivot()
 	}
 
 	temp = 99999999;
+	
+	if(isMultiple == true) colIndex = m_Pivot[COL];
+	
 
 	// Step 2. Calculate intercept ratio
 	
@@ -156,7 +179,10 @@ void Tableau::findPivot()
 			temp = m_Ratio[i];
 			rowIndex = i; // the current row is the pivot row (repeat and update again if the next rows have smaller ratio)
 		}
+		else if(m_Ratio[i] < 0 || isinf(m_Ratio[i]) || isnan(m_Ratio[i])) counter++;
 	}
+	
+	if(counter == m_Row) isUnbounded = true;
 	
 	// Step 3. Pivot identified
 	
@@ -227,6 +253,7 @@ void Tableau::Optimize()
 			if(equal(m_Matrix[0][j],0.0)<0) nCounter++;
 		
 		if(nCounter==0) isOptimal = true; // if there are none, stop calculation
+		if(isUnbounded == true) break;
 		if(isOptimal == false) printVar();
 		nCounter = 0;	 	 
 	}
@@ -237,6 +264,8 @@ void Tableau::Optimize()
 	{
 		showResult();
 		m_Output << "Multiple solutions available!" << endl;
+		m_Output << "Tableau will be revised. (Intercept ratio recalculated)" << endl;
+		printTable("revised");
 		printVar();
 		swapBasic();
 		rowOperation();
@@ -244,6 +273,12 @@ void Tableau::Optimize()
 		printTable("after one more iteration");
 	}
 	
+	if(isUnbounded == true)
+	{
+		m_Output << endl << "Unbounded solution! This problem cannot be solved." << endl;
+		m_Output << "This occurs when the intercept ratio column is all negative." << endl;
+		m_Output << "There may be a missing constraint. Please reenter your problem." << endl;
+	}
 }
 
 void Tableau::checkMultiple()
@@ -274,7 +309,10 @@ void Tableau::checkMultiple()
 			if(equal(m_Matrix[0][j],0.0)==0)
 			{
 				isMultiple = true;
+	
+				m_Pivot[COL] = j;
 				findPivot();
+				
 				m_Pivot[COL] = j;
 			}
 		}
@@ -338,6 +376,7 @@ void Tableau::printStandardForm()
 			if(m_Matrix[0][1] < 0) m_Output << " - " << fixed << setprecision(3);
 			else m_Output << " + ";
 		}
+		else m_Output << "    ";
 		
 		for(j=0; j<m_Column-1;j++)
 		{
@@ -354,7 +393,6 @@ void Tableau::printStandardForm()
 		}
 		
 		m_Output << " = " << m_Solution[i] << endl;
-		
 	}
 }
 
